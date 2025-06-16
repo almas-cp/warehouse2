@@ -307,10 +307,26 @@
                         </button>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="manual_item_id" class="form-label">Or Enter Item ID Manually:</label>
-                    <input type="text" class="form-control" id="manual_item_id">
+                
+                <div class="my-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Alternative Methods</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="manual_item_id" class="form-label">Enter Item ID Manually:</label>
+                                <input type="text" class="form-control" id="manual_item_id">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="barcode_image" class="form-label">Or Upload Barcode Image:</label>
+                                <input type="file" class="form-control" id="barcode_image" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                
                 <div id="scanned-product-info" class="d-none">
                     <div class="alert alert-info">
                         <h5 id="product-name"></h5>
@@ -548,8 +564,78 @@ $(document).ready(function() {
         $('#scanned-product-info').addClass('d-none');
         $('#processTransactionBtn').addClass('d-none');
         $('#manual_item_id').val('');
+        $('#barcode_image').val('');
         $('#startScanBtn').removeClass('d-none');
         $('#stopScanBtn').addClass('d-none');
+    });
+    
+    // Handle barcode image upload
+    $('#barcode_image').on('change', function(e) {
+        if (e.target.files.length === 0) return;
+        
+        const file = e.target.files[0];
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                // Create canvas and draw image
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size to match image
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // Draw image to canvas
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                
+                // Use ZXing to decode the barcode
+                try {
+                    const hints = new Map();
+                    const formats = [
+                        ZXing.BarcodeFormat.CODE_128,
+                        ZXing.BarcodeFormat.CODE_39,
+                        ZXing.BarcodeFormat.EAN_13,
+                        ZXing.BarcodeFormat.EAN_8,
+                        ZXing.BarcodeFormat.UPC_A,
+                        ZXing.BarcodeFormat.UPC_E
+                    ];
+                    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+                    
+                    // Create bitmap from canvas
+                    const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+                    const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
+                    
+                    // Create reader and decode
+                    const reader = new ZXing.MultiFormatReader();
+                    reader.setHints(hints);
+                    const result = reader.decode(binaryBitmap);
+                    
+                    if (result) {
+                        // Play a beep sound
+                        const beep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
+                        beep.play();
+                        
+                        // Get barcode text
+                        const code = result.getText();
+                        console.log("Decoded from image:", code);
+                        
+                        // Fetch product info
+                        fetchProductInfo(code);
+                    }
+                } catch (err) {
+                    console.error("Error decoding barcode from image:", err);
+                    alert("Could not find a valid barcode in the image. Please try another image or enter the code manually.");
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     });
     
     $('#startScanBtn').click(function() {
@@ -570,15 +656,33 @@ $(document).ready(function() {
     
     async function startZXingScanner() {
         try {
+            const hints = new Map();
+            const formats = [
+                ZXing.BarcodeFormat.CODE_128,
+                ZXing.BarcodeFormat.CODE_39,
+                ZXing.BarcodeFormat.EAN_13,
+                ZXing.BarcodeFormat.EAN_8,
+                ZXing.BarcodeFormat.UPC_A,
+                ZXing.BarcodeFormat.UPC_E
+            ];
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+            
             if (!codeReader) {
                 // Initialize the ZXing reader
-                codeReader = new ZXing.BrowserMultiFormatReader();
+                codeReader = new ZXing.BrowserMultiFormatReader(hints);
             }
             
             scannerActive = true;
             
             // Get video devices
             const videoInputDevices = await codeReader.listVideoInputDevices();
+            
+            if (videoInputDevices.length === 0) {
+                alert('No camera found on your device');
+                $('#startScanBtn').removeClass('d-none');
+                $('#stopScanBtn').addClass('d-none');
+                return;
+            }
             
             // Select the rear camera if available, otherwise use the first camera
             selectedDeviceId = null;
@@ -588,40 +692,40 @@ $(document).ready(function() {
                     break;
                 }
             }
-            if (!selectedDeviceId && videoInputDevices.length > 0) {
+            if (!selectedDeviceId) {
                 selectedDeviceId = videoInputDevices[0].deviceId;
             }
             
-            if (!selectedDeviceId) {
-                alert('No camera found on your device');
-                $('#startScanBtn').removeClass('d-none');
-                $('#stopScanBtn').addClass('d-none');
-                return;
-            }
-            
-            // Start decoding from the device with the selected or default ID
+            // Start decoding from the device with the selected ID
             const videoElement = document.getElementById('video');
             
-            codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+            // Handle successful scanning
+            codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, error) => {
                 if (result && scannerActive) {
+                    // Play a beep sound
+                    const beep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
+                    beep.play();
+                    
                     // Get the barcode text
                     const code = result.getText();
+                    console.log("Scanned code:", code);
                     
                     // Stop scanning temporarily
                     scannerActive = false;
                     $('#scanner-overlay').show();
                     
-                    // Play a beep sound
-                    const beep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
-                    beep.play();
-                    
                     // Fetch product info
                     fetchProductInfo(code);
                 }
                 
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    console.error('Error while scanning:', err);
+                if (error && !(error instanceof ZXing.NotFoundException)) {
+                    console.error("Scanner error:", error);
                 }
+            }).catch(err => {
+                console.error("Camera error:", err);
+                alert('Error accessing camera: ' + err.message);
+                $('#startScanBtn').removeClass('d-none');
+                $('#stopScanBtn').addClass('d-none');
             });
             
         } catch (err) {
@@ -634,8 +738,12 @@ $(document).ready(function() {
     
     function stopZXingScanner() {
         if (codeReader) {
-            codeReader.reset();
-            scannerActive = false;
+            try {
+                codeReader.reset();
+                scannerActive = false;
+            } catch (err) {
+                console.error('Error stopping scanner:', err);
+            }
         }
     }
     
@@ -647,6 +755,7 @@ $(document).ready(function() {
     });
     
     function fetchProductInfo(itemId) {
+        console.log("Fetching product info for:", itemId);
         $.ajax({
             url: baseUrl + 'dashboard/get_product/' + itemId,
             type: 'GET',
@@ -679,8 +788,9 @@ $(document).ready(function() {
                     }, 1000);
                 }
             },
-            error: function() {
+            error: function(xhr) {
                 $('#scanner-overlay').hide();
+                console.error("AJAX error:", xhr.responseText);
                 alert('Error: Could not fetch product information');
                 setTimeout(function() {
                     scannerActive = true;
