@@ -904,7 +904,7 @@ $(document).ready(function() {
                             <input type="number" class="form-control item-quantity ${textColor}" 
                                 min="1" max="${item.action === 'check-out' ? item.available : 999}" 
                                 value="${Math.abs(displayQuantity)}" style="width: 80px;">
-                            <span class="input-group-text ${textColor}">
+                            <span class="input-group-text ${textColor} text-center" style="width: 40px;">
                                 ${item.action === 'check-out' ? '-' : '+'}
                             </span>
                         </div>
@@ -913,11 +913,11 @@ $(document).ready(function() {
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn ${item.action === 'check-out' ? 'btn-danger active' : 'btn-outline-danger'} btn-action" 
                                 data-action="check-out" data-id="${item.id}">
-                                <i class="fas fa-minus"></i>
+                                Check Out
                             </button>
                             <button type="button" class="btn ${item.action === 'check-in' ? 'btn-success active' : 'btn-outline-success'} btn-action" 
                                 data-action="check-in" data-id="${item.id}">
-                                <i class="fas fa-plus"></i>
+                                Check In
                             </button>
                         </div>
                     </td>
@@ -947,6 +947,11 @@ $(document).ready(function() {
             const quantity = parseInt($(this).val()) || 1;
             
             if (batchItems[itemId]) {
+                // For check-out action, verify if quantity exceeds available
+                if (batchItems[itemId].action === 'check-out' && quantity > batchItems[itemId].available) {
+                    alert(`Warning: Cannot check out more than available.\n\nProduct: ${batchItems[itemId].name}\nAvailable: ${batchItems[itemId].available}\nRequested: ${quantity}`);
+                }
+                
                 // Ensure quantity is valid
                 const maxQuantity = batchItems[itemId].action === 'check-out' ? 
                     batchItems[itemId].available : 999;
