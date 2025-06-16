@@ -1,3 +1,49 @@
+<!-- Dashboard Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card bg-primary text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Products</h5>
+                        <h2 class="mb-0"><?= $stats['total_products'] ?></h2>
+                    </div>
+                    <i class="fas fa-boxes fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">Total Items: <?= $stats['total_items'] ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-success text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Transactions</h5>
+                        <h2 class="mb-0"><?= $stats['total_transactions'] ?></h2>
+                    </div>
+                    <i class="fas fa-exchange-alt fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">Check-in: <?= $stats['checkin_count'] ?> / Check-out: <?= $stats['checkout_count'] ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card <?= $stats['low_stock_count'] > 0 ? 'bg-warning' : 'bg-info' ?> text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Low Stock Alert</h5>
+                        <h2 class="mb-0"><?= $stats['low_stock_count'] ?></h2>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x"></i>
+                </div>
+                <p class="mt-2 mb-0">Products with quantity <= 5</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card">
@@ -48,6 +94,59 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Recent Transactions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="transactionTable">
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Product</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Benefactor</th>
+                                <th>Date/Time</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($recent_transactions)) : ?>
+                            <tr>
+                                <td colspan="7" class="text-center">No transactions found</td>
+                            </tr>
+                            <?php else : ?>
+                                <?php foreach ($recent_transactions as $transaction) : ?>
+                                <tr>
+                                    <td><?= $transaction['transaction_id'] ?></td>
+                                    <td><?= $transaction['product_name'] ?></td>
+                                    <td>
+                                        <?php if ($transaction['transaction_type'] == 'check-in') : ?>
+                                            <span class="badge bg-success">Check In</span>
+                                        <?php else : ?>
+                                            <span class="badge bg-warning">Check Out</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= $transaction['quantity'] ?></td>
+                                    <td><?= $transaction['benefactor'] ?></td>
+                                    <td><?= date('Y-m-d H:i', strtotime($transaction['transaction_time'])) ?></td>
+                                    <td><?= $transaction['notes'] ? $transaction['notes'] : '-' ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -190,8 +289,22 @@
             </div>
             <div class="modal-body">
                 <div class="text-center mb-3">
-                    <div id="scanner-container">
-                        <p>Barcode scanner will be implemented in Phase 3</p>
+                    <div id="scanner-container" style="position: relative; max-width: 100%;">
+                        <video id="video" style="width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px;"></video>
+                        <canvas id="canvas" hidden></canvas>
+                        <div id="scanner-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.3); display: none;">
+                            <div class="d-flex justify-content-center align-items-center h-100">
+                                <div class="spinner-border text-light" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-primary" id="startScanBtn">
+                            <i class="fas fa-camera me-1"></i>Start Scanner
+                        </button>
+                        <button class="btn btn-secondary d-none" id="stopScanBtn">
+                            <i class="fas fa-stop me-1"></i>Stop Scanner
+                        </button>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -244,8 +357,73 @@
     </div>
 </div>
 
+<!-- Barcode Print Preview Modal -->
+<div class="modal fade" id="printPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Print Labels</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Select the products you want to print labels for.
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th width="50">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAllProducts">
+                                            </div>
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Product Name</th>
+                                        <th>Quantity to Print</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="printProductsBody">
+                                    <!-- Products will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="printLabelsBtn">Print Selected Labels</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
+    // Product search with debounce
+    const debouncedSearch = debounce(function() {
+        const searchTerm = $('#searchInput').val().toLowerCase();
+        
+        $('#inventoryTable tbody tr').each(function() {
+            const rowText = $(this).text().toLowerCase();
+            if (rowText.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }, 300);
+    
+    $('#searchInput').on('keyup', debouncedSearch);
+    $('#searchButton').click(debouncedSearch);
+    
     // Add Product
     $('#btnAddProduct').click(function() {
         $('#addProductForm')[0].reset();
@@ -266,13 +444,11 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#addProductModal').modal('hide');
-                    window.location.reload();
+                    showToast('Product added successfully', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast(response.message, 'error');
                 }
-            },
-            error: function(xhr) {
-                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -295,11 +471,8 @@ $(document).ready(function() {
                     $('#edit_category').val(product.category);
                     $('#editProductModal').modal('show');
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast(response.message, 'error');
                 }
-            },
-            error: function(xhr) {
-                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -318,13 +491,11 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#editProductModal').modal('hide');
-                    window.location.reload();
+                    showToast('Product updated successfully', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast(response.message, 'error');
                 }
-            },
-            error: function(xhr) {
-                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -346,43 +517,247 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#deleteConfirmModal').modal('hide');
-                    window.location.reload();
+                    showToast('Product deleted successfully', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast(response.message, 'error');
                 }
-            },
-            error: function(xhr) {
-                alert('Error: ' + xhr.responseText);
             }
         });
     });
     
-    // Search functionality
-    $('#searchButton').click(function() {
-        const searchTerm = $('#searchInput').val().toLowerCase();
-        
-        $('#inventoryTable tbody tr').each(function() {
-            const rowText = $(this).text().toLowerCase();
-            if (rowText.includes(searchTerm)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
+    // Barcode scanning implementation using ZXing
+    let codeReader = null;
+    let selectedDeviceId = null;
+    let scannerActive = false;
+    
+    $('#btnScan').click(function() {
+        $('#scanModal').modal('show');
+        $('#scanned-product-info').addClass('d-none');
+        $('#processTransactionBtn').addClass('d-none');
+        $('#manual_item_id').val('');
+        $('#startScanBtn').removeClass('d-none');
+        $('#stopScanBtn').addClass('d-none');
     });
     
-    $('#searchInput').on('keyup', function(e) {
-        if (e.key === 'Enter') {
-            $('#searchButton').click();
+    $('#startScanBtn').click(function() {
+        $(this).addClass('d-none');
+        $('#stopScanBtn').removeClass('d-none');
+        startZXingScanner();
+    });
+    
+    $('#stopScanBtn').click(function() {
+        $(this).addClass('d-none');
+        $('#startScanBtn').removeClass('d-none');
+        stopZXingScanner();
+    });
+    
+    $('#scanModal').on('hidden.bs.modal', function() {
+        stopZXingScanner();
+    });
+    
+    async function startZXingScanner() {
+        try {
+            if (!codeReader) {
+                // Initialize the ZXing reader
+                codeReader = new ZXing.BrowserMultiFormatReader();
+            }
+            
+            scannerActive = true;
+            
+            // Get video devices
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            
+            // Select the rear camera if available, otherwise use the first camera
+            selectedDeviceId = null;
+            for (const device of videoInputDevices) {
+                if (/back|rear|environment/gi.test(device.label)) {
+                    selectedDeviceId = device.deviceId;
+                    break;
+                }
+            }
+            if (!selectedDeviceId && videoInputDevices.length > 0) {
+                selectedDeviceId = videoInputDevices[0].deviceId;
+            }
+            
+            if (!selectedDeviceId) {
+                alert('No camera found on your device');
+                $('#startScanBtn').removeClass('d-none');
+                $('#stopScanBtn').addClass('d-none');
+                return;
+            }
+            
+            // Start decoding from the device with the selected or default ID
+            const videoElement = document.getElementById('video');
+            
+            codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                if (result && scannerActive) {
+                    // Get the barcode text
+                    const code = result.getText();
+                    
+                    // Stop scanning temporarily
+                    scannerActive = false;
+                    $('#scanner-overlay').show();
+                    
+                    // Play a beep sound
+                    const beep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
+                    beep.play();
+                    
+                    // Fetch product info
+                    fetchProductInfo(code);
+                }
+                
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error('Error while scanning:', err);
+                }
+            });
+            
+        } catch (err) {
+            console.error('Error initializing scanner:', err);
+            alert('Error initializing scanner: ' + err.message);
+            $('#startScanBtn').removeClass('d-none');
+            $('#stopScanBtn').addClass('d-none');
+        }
+    }
+    
+    function stopZXingScanner() {
+        if (codeReader) {
+            codeReader.reset();
+            scannerActive = false;
+        }
+    }
+    
+    $('#manual_item_id').change(function() {
+        const itemId = $(this).val();
+        if (itemId) {
+            fetchProductInfo(itemId);
         }
     });
     
-    // Barcode generation
+    function fetchProductInfo(itemId) {
+        $.ajax({
+            url: baseUrl + 'dashboard/get_product/' + itemId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                $('#scanner-overlay').hide();
+                
+                if (response.status === 'success') {
+                    const product = response.data;
+                    $('#product-name').text(product.name);
+                    $('#product-id').text(product.item_id);
+                    $('#product-quantity').text(product.quantity);
+                    $('#transaction_item_id').val(product.item_id);
+                    $('#transaction_quantity').val(1);
+                    $('#benefactor').val('');
+                    $('#notes').val('');
+                    
+                    $('#scanned-product-info').removeClass('d-none');
+                    $('#processTransactionBtn').removeClass('d-none');
+                    
+                    // Enable scanning again after a delay
+                    setTimeout(function() {
+                        scannerActive = true;
+                    }, 3000);
+                    
+                } else {
+                    alert('Error: Product not found');
+                    setTimeout(function() {
+                        scannerActive = true;
+                    }, 1000);
+                }
+            },
+            error: function() {
+                $('#scanner-overlay').hide();
+                alert('Error: Could not fetch product information');
+                setTimeout(function() {
+                    scannerActive = true;
+                }, 1000);
+            }
+        });
+    }
+    
+    // Barcode generation enhancements
     $('#btnGenerateBarcodes').click(function() {
         $('#barcodeModal').modal('show');
         loadBarcodes();
     });
     
+    // Print labels functionality
+    $('#barcodeModal').on('click', '.print-label', function() {
+        const itemId = $(this).data('id');
+        printSingleLabel(itemId);
+    });
+    
+    function printSingleLabel(itemId) {
+        const printWindow = window.open('', '_blank');
+        
+        if (!printWindow) {
+            alert('Please allow pop-ups to print labels');
+            return;
+        }
+        
+        $.ajax({
+            url: baseUrl + 'dashboard/generate_barcode/' + itemId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    const product = response.data;
+                    
+                    let html = `
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>Label - ${product.name}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+                                .label { 
+                                    width: 300px; 
+                                    text-align: center; 
+                                    border: 1px solid #ddd; 
+                                    border-radius: 4px; 
+                                    padding: 15px; 
+                                    margin: 20px auto;
+                                }
+                                img { max-width: 100%; }
+                                h3 { margin-top: 0; }
+                                .no-print { margin: 20px; text-align: center; }
+                                @media print {
+                                    .no-print { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="no-print">
+                                <button onclick="window.print()">Print Label</button>
+                            </div>
+                            <div class="label">
+                                <h3>${product.name}</h3>
+                                <img src="${product.barcode_url}" alt="Barcode ${product.item_id}">
+                                <p>ID: ${product.item_id}</p>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    printWindow.document.write(html);
+                    printWindow.document.close();
+                    
+                } else {
+                    alert('Error generating label');
+                    printWindow.close();
+                }
+            },
+            error: function() {
+                alert('Error generating label');
+                printWindow.close();
+            }
+        });
+    }
+    
+    // Add print buttons to each barcode card
     function loadBarcodes() {
         $('#barcodeContainer').html('<div class="text-center w-100"><div class="spinner-border" role="status"></div></div>');
         
@@ -401,8 +776,12 @@ $(document).ready(function() {
                                     <div class="card-body text-center">
                                         <h6>${product.name}</h6>
                                         <img src="https://barcodeapi.org/api/code128/${product.item_id}" 
-                                             alt="Barcode ${product.item_id}" class="img-fluid">
+                                             alt="Barcode ${product.item_id}" class="img-fluid barcode-img" 
+                                             data-id="${product.item_id}" data-name="${product.name}">
                                         <p class="mt-2">ID: ${product.item_id}</p>
+                                        <button class="btn btn-sm btn-info print-label" data-id="${product.item_id}">
+                                            <i class="fas fa-print me-1"></i>Print Label
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -424,47 +803,169 @@ $(document).ready(function() {
         loadBarcodes();
     });
     
-    // Scanner functionality - phase 3 implementation
-    $('#btnScan').click(function() {
-        $('#scanModal').modal('show');
-        $('#scanned-product-info').addClass('d-none');
-        $('#processTransactionBtn').addClass('d-none');
-        $('#manual_item_id').val('');
-    });
-    
-    $('#manual_item_id').change(function() {
-        const itemId = $(this).val();
-        if (itemId) {
-            fetchProductInfo(itemId);
+    // Download all barcodes
+    $('#downloadBarcodesBtn').click(function() {
+        // Create a temporary container for printing
+        const printWindow = window.open('', '_blank');
+        
+        if (!printWindow) {
+            alert('Please allow pop-ups to download barcodes');
+            return;
         }
-    });
-    
-    function fetchProductInfo(itemId) {
+        
+        // Get all products
         $.ajax({
-            url: baseUrl + 'dashboard/get_product/' + itemId,
+            url: baseUrl + 'dashboard/get_all_products',
             type: 'GET',
             dataType: 'json',
             success: function(response) {
                 if (response.status === 'success') {
-                    const product = response.data;
-                    $('#product-name').text(product.name);
-                    $('#product-id').text(product.item_id);
-                    $('#product-quantity').text(product.quantity);
-                    $('#transaction_item_id').val(product.item_id);
-                    $('#transaction_quantity').val(1);
-                    $('#benefactor').val('');
-                    $('#notes').val('');
+                    // Create the HTML content with barcodes
+                    let html = `
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>Warehouse Barcodes</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; }
+                                .container { display: flex; flex-wrap: wrap; }
+                                .barcode-item { 
+                                    width: 33%; 
+                                    text-align: center; 
+                                    padding: 10px; 
+                                    box-sizing: border-box;
+                                    page-break-inside: avoid;
+                                }
+                                .barcode-card {
+                                    border: 1px solid #ddd;
+                                    border-radius: 4px;
+                                    padding: 15px;
+                                    margin-bottom: 15px;
+                                }
+                                h3 { margin-top: 0; }
+                                img { max-width: 100%; }
+                                @media print {
+                                    .no-print { display: none; }
+                                    body { margin: 0; padding: 15px; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="no-print" style="text-align: center; margin: 20px 0;">
+                                <h1>Warehouse Barcodes</h1>
+                                <button onclick="window.print()">Print Barcodes</button>
+                                <p>Click the button above to print or right-click and select Save to download as PDF</p>
+                            </div>
+                            <div class="container">
+                    `;
                     
-                    $('#scanned-product-info').removeClass('d-none');
-                    $('#processTransactionBtn').removeClass('d-none');
+                    // Add each product barcode
+                    $.each(response.data, function(index, product) {
+                        html += `
+                            <div class="barcode-item">
+                                <div class="barcode-card">
+                                    <h3>${product.name}</h3>
+                                    <img src="https://barcodeapi.org/api/code128/${product.item_id}" 
+                                         alt="Barcode ${product.item_id}">
+                                    <p>ID: ${product.item_id}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    // Write the HTML to the new window
+                    printWindow.document.write(html);
+                    printWindow.document.close();
+                    
                 } else {
-                    alert('Error: Product not found');
+                    alert('Error loading barcodes for download');
+                    printWindow.close();
                 }
             },
             error: function() {
-                alert('Error: Could not fetch product information');
+                alert('Error loading barcodes for download');
+                printWindow.close();
+            }
+        });
+    });
+    
+    // Process Transaction
+    $('#processTransactionBtn').click(function() {
+        if (!$('#transactionForm')[0].checkValidity()) {
+            $('#transactionForm')[0].reportValidity();
+            return;
+        }
+        
+        const itemId = $('#transaction_item_id').val();
+        const transactionType = $('input[name="transaction_type"]:checked').val();
+        const quantity = $('#transaction_quantity').val();
+        const benefactor = $('#benefactor').val();
+        const notes = $('#notes').val();
+        
+        $.ajax({
+            url: baseUrl + 'dashboard/add_transaction',
+            type: 'POST',
+            data: {
+                item_id: itemId,
+                transaction_type: transactionType,
+                quantity: quantity,
+                benefactor: benefactor,
+                notes: notes
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#scanModal').modal('hide');
+                    showToast('Transaction processed successfully!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(response.message, 'error');
+                }
+            }
+        });
+    });
+    
+    // Refresh transaction table
+    function refreshTransactions() {
+        $.ajax({
+            url: baseUrl + 'dashboard/get_recent_transactions',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    let html = '';
+                    if (response.data.length === 0) {
+                        html = '<tr><td colspan="7" class="text-center">No transactions found</td></tr>';
+                    } else {
+                        $.each(response.data, function(index, transaction) {
+                            const badgeClass = transaction.transaction_type === 'check-in' ? 'bg-success' : 'bg-warning';
+                            const badgeText = transaction.transaction_type === 'check-in' ? 'Check In' : 'Check Out';
+                            const transactionDate = new Date(transaction.transaction_time).toLocaleString();
+                            
+                            html += `
+                                <tr>
+                                    <td>${transaction.transaction_id}</td>
+                                    <td>${transaction.product_name}</td>
+                                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                                    <td>${transaction.quantity}</td>
+                                    <td>${transaction.benefactor}</td>
+                                    <td>${transactionDate}</td>
+                                    <td>${transaction.notes || '-'}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    $('#transactionTable tbody').html(html);
+                }
             }
         });
     }
 });
-</script> 
+</script>
