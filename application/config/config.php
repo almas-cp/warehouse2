@@ -530,24 +530,3 @@ $config['rewrite_short_tags'] = FALSE;
 | Array:		array('10.0.1.200', '192.168.5.0/24')
 */
 $config['proxy_ips'] = '';
-
-/*
-|--------------------------------------------------------------------------
-| Performance Optimizations
-|--------------------------------------------------------------------------
-|
-| Enable these settings to improve performance
-|
-*/
-
-// Enable output compression
-$config['compress_output'] = TRUE;
-
-// Enable cache expiration
-$config['cache_query_string'] = TRUE;
-
-// Configure session timeout (30 minutes)
-$config['sess_expiration'] = 1800;
-
-// Disable XSS filtering for better performance, as we're handling input ourselves
-$config['global_xss_filtering'] = FALSE;

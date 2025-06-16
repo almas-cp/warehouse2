@@ -1,7 +1,7 @@
 <!-- Dashboard Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-4 mb-3">
-        <div class="card bg-primary text-white dashboard-card">
+        <div class="card bg-primary text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -15,7 +15,7 @@
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card bg-success text-white dashboard-card">
+        <div class="card bg-success text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -29,7 +29,7 @@
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card <?= $stats['low_stock_count'] > 0 ? 'bg-warning' : 'bg-info' ?> text-white dashboard-card">
+        <div class="card <?= $stats['low_stock_count'] > 0 ? 'bg-warning' : 'bg-info' ?> text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -407,23 +407,6 @@
 
 <script>
 $(document).ready(function() {
-    // Product search with debounce
-    const debouncedSearch = debounce(function() {
-        const searchTerm = $('#searchInput').val().toLowerCase();
-        
-        $('#inventoryTable tbody tr').each(function() {
-            const rowText = $(this).text().toLowerCase();
-            if (rowText.includes(searchTerm)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    }, 300);
-    
-    $('#searchInput').on('keyup', debouncedSearch);
-    $('#searchButton').click(debouncedSearch);
-    
     // Add Product
     $('#btnAddProduct').click(function() {
         $('#addProductForm')[0].reset();
@@ -444,11 +427,13 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#addProductModal').modal('hide');
-                    showToast('Product added successfully', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
+                    window.location.reload();
                 } else {
-                    showToast(response.message, 'error');
+                    alert('Error: ' + response.message);
                 }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -471,8 +456,11 @@ $(document).ready(function() {
                     $('#edit_category').val(product.category);
                     $('#editProductModal').modal('show');
                 } else {
-                    showToast(response.message, 'error');
+                    alert('Error: ' + response.message);
                 }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -491,11 +479,13 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#editProductModal').modal('hide');
-                    showToast('Product updated successfully', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
+                    window.location.reload();
                 } else {
-                    showToast(response.message, 'error');
+                    alert('Error: ' + response.message);
                 }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseText);
             }
         });
     });
@@ -517,13 +507,35 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#deleteConfirmModal').modal('hide');
-                    showToast('Product deleted successfully', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
+                    window.location.reload();
                 } else {
-                    showToast(response.message, 'error');
+                    alert('Error: ' + response.message);
                 }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseText);
             }
         });
+    });
+    
+    // Search functionality
+    $('#searchButton').click(function() {
+        const searchTerm = $('#searchInput').val().toLowerCase();
+        
+        $('#inventoryTable tbody tr').each(function() {
+            const rowText = $(this).text().toLowerCase();
+            if (rowText.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    });
+    
+    $('#searchInput').on('keyup', function(e) {
+        if (e.key === 'Enter') {
+            $('#searchButton').click();
+        }
     });
     
     // Barcode scanning implementation using ZXing
@@ -923,11 +935,14 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#scanModal').modal('hide');
-                    showToast('Transaction processed successfully!', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
+                    alert('Transaction processed successfully!');
+                    window.location.reload();
                 } else {
-                    showToast(response.message, 'error');
+                    alert('Error: ' + response.message);
                 }
+            },
+            error: function(xhr) {
+                alert('Error: ' + xhr.responseText);
             }
         });
     });

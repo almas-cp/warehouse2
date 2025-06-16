@@ -3,48 +3,19 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Dashboard extends CI_Controller {
 
-    private $cache_time = 300; // 5 minutes cache time
-
     public function __construct() {
         parent::__construct();
         $this->load->model('product_model');
         $this->load->model('transaction_model');
         $this->load->helper('url');
         $this->load->library('form_validation');
-        
-        // Load cache driver
-        $this->load->driver('cache', array('adapter' => 'file'));
     }
 
     public function index() {
         $data['title'] = 'Warehouse Inventory System';
-        
-        // Try to get data from cache first
-        $products = $this->cache->get('products_list');
-        $recent_transactions = $this->cache->get('recent_transactions');
-        $stats = $this->cache->get('dashboard_stats');
-        
-        if (!$products) {
-            $products = $this->product_model->get_all_products();
-            // Save to cache
-            $this->cache->save('products_list', $products, $this->cache_time);
-        }
-        
-        if (!$recent_transactions) {
-            $recent_transactions = $this->transaction_model->get_recent_transactions(5);
-            // Save to cache
-            $this->cache->save('recent_transactions', $recent_transactions, $this->cache_time);
-        }
-        
-        if (!$stats) {
-            $stats = $this->get_dashboard_stats();
-            // Save to cache
-            $this->cache->save('dashboard_stats', $stats, $this->cache_time);
-        }
-        
-        $data['products'] = $products;
-        $data['recent_transactions'] = $recent_transactions;
-        $data['stats'] = $stats;
+        $data['products'] = $this->product_model->get_all_products();
+        $data['recent_transactions'] = $this->transaction_model->get_recent_transactions(5);
+        $data['stats'] = $this->get_dashboard_stats();
         
         $this->load->view('templates/header', $data);
         $this->load->view('dashboard/index', $data);
@@ -82,10 +53,10 @@ class Dashboard extends CI_Controller {
     // Product CRUD Operations
     
     public function add_product() {
-        $this->form_validation->set_rules('name', 'Product Name', 'required|trim');
+        $this->form_validation->set_rules('name', 'Product Name', 'required');
         $this->form_validation->set_rules('unit_price', 'Unit Price', 'required|numeric');
         $this->form_validation->set_rules('quantity', 'Quantity', 'required|integer');
-        $this->form_validation->set_rules('category', 'Category', 'required|trim');
+        $this->form_validation->set_rules('category', 'Category', 'required');
         
         if ($this->form_validation->run() === FALSE) {
             $this->output->set_status_header(400);
@@ -97,13 +68,10 @@ class Dashboard extends CI_Controller {
             'name' => $this->input->post('name'),
             'unit_price' => $this->input->post('unit_price'),
             'quantity' => $this->input->post('quantity'),
-            'category' => $this->input->post('category'),
-            'date_added' => date('Y-m-d H:i:s')
+            'category' => $this->input->post('category')
         ];
         
         if ($this->product_model->add_product($product_data)) {
-            // Clear cache
-            $this->clear_cache();
             echo json_encode(['status' => 'success', 'message' => 'Product added successfully']);
         } else {
             $this->output->set_status_header(500);
@@ -112,17 +80,7 @@ class Dashboard extends CI_Controller {
     }
     
     public function get_product($item_id) {
-        // Try to get from cache first
-        $cache_key = 'product_' . $item_id;
-        $product = $this->cache->get($cache_key);
-        
-        if (!$product) {
-            $product = $this->product_model->get_product($item_id);
-            // Save to cache if found
-            if ($product) {
-                $this->cache->save($cache_key, $product, $this->cache_time);
-            }
-        }
+        $product = $this->product_model->get_product($item_id);
         
         if ($product) {
             echo json_encode(['status' => 'success', 'data' => $product]);
@@ -135,10 +93,10 @@ class Dashboard extends CI_Controller {
     public function update_product() {
         $item_id = $this->input->post('item_id');
         
-        $this->form_validation->set_rules('name', 'Product Name', 'required|trim');
+        $this->form_validation->set_rules('name', 'Product Name', 'required');
         $this->form_validation->set_rules('unit_price', 'Unit Price', 'required|numeric');
         $this->form_validation->set_rules('quantity', 'Quantity', 'required|integer');
-        $this->form_validation->set_rules('category', 'Category', 'required|trim');
+        $this->form_validation->set_rules('category', 'Category', 'required');
         
         if ($this->form_validation->run() === FALSE) {
             $this->output->set_status_header(400);
@@ -154,9 +112,6 @@ class Dashboard extends CI_Controller {
         ];
         
         if ($this->product_model->update_product($item_id, $product_data)) {
-            // Clear cache
-            $this->clear_cache();
-            $this->cache->delete('product_' . $item_id);
             echo json_encode(['status' => 'success', 'message' => 'Product updated successfully']);
         } else {
             $this->output->set_status_header(500);
@@ -166,9 +121,6 @@ class Dashboard extends CI_Controller {
     
     public function delete_product($item_id) {
         if ($this->product_model->delete_product($item_id)) {
-            // Clear cache
-            $this->clear_cache();
-            $this->cache->delete('product_' . $item_id);
             echo json_encode(['status' => 'success', 'message' => 'Product deleted successfully']);
         } else {
             $this->output->set_status_header(500);
@@ -178,15 +130,7 @@ class Dashboard extends CI_Controller {
     
     // Get all products for AJAX request
     public function get_all_products() {
-        // Try to get from cache first
-        $products = $this->cache->get('products_list');
-        
-        if (!$products) {
-            $products = $this->product_model->get_all_products();
-            // Save to cache
-            $this->cache->save('products_list', $products, $this->cache_time);
-        }
-        
+        $products = $this->product_model->get_all_products();
         echo json_encode(['status' => 'success', 'data' => $products]);
     }
     
@@ -196,7 +140,7 @@ class Dashboard extends CI_Controller {
         $this->form_validation->set_rules('item_id', 'Product ID', 'required|integer');
         $this->form_validation->set_rules('transaction_type', 'Transaction Type', 'required|in_list[check-in,check-out]');
         $this->form_validation->set_rules('quantity', 'Quantity', 'required|integer|greater_than[0]');
-        $this->form_validation->set_rules('benefactor', 'Benefactor', 'required|trim');
+        $this->form_validation->set_rules('benefactor', 'Benefactor', 'required');
         
         if ($this->form_validation->run() === FALSE) {
             $this->output->set_status_header(400);
@@ -233,8 +177,7 @@ class Dashboard extends CI_Controller {
             'transaction_type' => $transaction_type,
             'quantity' => $quantity,
             'benefactor' => $benefactor,
-            'notes' => $notes,
-            'transaction_time' => date('Y-m-d H:i:s')
+            'notes' => $notes
         ];
         
         $this->transaction_model->add_transaction($transaction_data);
@@ -250,57 +193,24 @@ class Dashboard extends CI_Controller {
             return;
         }
         
-        // Clear cache
-        $this->clear_cache();
-        $this->cache->delete('product_' . $item_id);
-        
         echo json_encode(['status' => 'success', 'message' => 'Transaction processed successfully']);
     }
     
     public function get_recent_transactions() {
         $limit = $this->input->get('limit') ? $this->input->get('limit') : 10;
-        
-        // Try to get from cache first
-        $cache_key = 'transactions_' . $limit;
-        $transactions = $this->cache->get($cache_key);
-        
-        if (!$transactions) {
-            $transactions = $this->transaction_model->get_recent_transactions($limit);
-            // Save to cache
-            $this->cache->save($cache_key, $transactions, $this->cache_time);
-        }
-        
+        $transactions = $this->transaction_model->get_recent_transactions($limit);
         echo json_encode(['status' => 'success', 'data' => $transactions]);
     }
     
     public function get_product_transactions($item_id) {
-        // Try to get from cache first
-        $cache_key = 'product_transactions_' . $item_id;
-        $transactions = $this->cache->get($cache_key);
-        
-        if (!$transactions) {
-            $transactions = $this->transaction_model->get_product_transactions($item_id);
-            // Save to cache
-            $this->cache->save($cache_key, $transactions, $this->cache_time);
-        }
-        
+        $transactions = $this->transaction_model->get_product_transactions($item_id);
         echo json_encode(['status' => 'success', 'data' => $transactions]);
     }
     
     // Barcode Generation
     
     public function generate_barcode($item_id) {
-        // Try to get from cache first
-        $cache_key = 'product_' . $item_id;
-        $product = $this->cache->get($cache_key);
-        
-        if (!$product) {
-            $product = $this->product_model->get_product($item_id);
-            // Save to cache if found
-            if ($product) {
-                $this->cache->save($cache_key, $product, $this->cache_time);
-            }
-        }
+        $product = $this->product_model->get_product($item_id);
         
         if (!$product) {
             $this->output->set_status_header(404);
@@ -333,18 +243,7 @@ class Dashboard extends CI_Controller {
         
         $products = [];
         foreach ($item_ids as $item_id) {
-            // Try to get from cache first
-            $cache_key = 'product_' . $item_id;
-            $product = $this->cache->get($cache_key);
-            
-            if (!$product) {
-                $product = $this->product_model->get_product($item_id);
-                // Save to cache if found
-                if ($product) {
-                    $this->cache->save($cache_key, $product, $this->cache_time);
-                }
-            }
-            
+            $product = $this->product_model->get_product($item_id);
             if ($product) {
                 $product['barcode_url'] = "https://barcodeapi.org/api/code128/{$item_id}";
                 $products[] = $product;
@@ -352,12 +251,5 @@ class Dashboard extends CI_Controller {
         }
         
         echo json_encode(['status' => 'success', 'data' => $products]);
-    }
-    
-    // Helper function to clear all cache
-    private function clear_cache() {
-        $this->cache->delete('products_list');
-        $this->cache->delete('recent_transactions');
-        $this->cache->delete('dashboard_stats');
     }
 } 
