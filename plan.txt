@@ -1,0 +1,127 @@
+# WAREHOUSE INVENTORY MANAGEMENT SYSTEM PLAN
+
+## 1. DATABASE STRUCTURE
+
+### Products Table
+- item_id (INT, primary key, auto-increment starting from 1000)
+- name (VARCHAR)
+- unit_price (DECIMAL)
+- quantity (INT)
+- category (VARCHAR)
+- date_added (DATETIME)
+
+### Transactions Table
+- transaction_id (INT, primary key, auto-increment)
+- item_id (INT, foreign key referencing Products)
+- transaction_type (ENUM: 'check-in', 'check-out')
+- quantity (INT)
+- transaction_time (DATETIME)
+- benefactor (VARCHAR)
+- notes (TEXT, optional)
+
+## 2. CORE FUNCTIONALITY
+
+### Inventory Management
+- Add new products with unique IDs (starting from 1000)
+- View all products with current quantities
+- Update product details
+- Delete products (with safeguards)
+- Categorize products
+- Track stock levels
+
+### Transaction Processing
+- Check-in (return) process
+  * Scan barcode or enter product ID
+  * Enter quantity and benefactor
+  * Add optional notes
+  * Update inventory quantity
+
+- Check-out (borrow) process
+  * Scan barcode or enter product ID
+  * Validate available quantity
+  * Enter quantity and benefactor
+  * Add optional notes
+  * Update inventory quantity
+
+### Business Rules
+- Prevent negative stock (cannot check out more than available)
+- Auto-capture transaction timestamp
+- Required fields validation
+
+## 3. BARCODE SYSTEM
+
+### Barcode Generation
+- Generate Code128 barcodes using BarcodeAPI.org
+- Barcodes will contain item ID (numbers from 1000 onwards)
+- Bulk generate labels facility with download option
+
+### Barcode Scanning
+- Implement barcode scanning using device camera
+- Auto-populate product details upon scan
+- Fallback manual entry option
+
+## 4. USER INTERFACE (SINGLE-PAGE APPLICATION)
+
+### Main Dashboard
+- Single page application with responsive layout
+- Inventory data displayed in table format
+- Inline forms for add/edit functionality
+- Action buttons (edit, delete) next to each item row
+- Bulk barcode generation button
+- Scan button for transaction processing
+
+### Modal Windows
+- Add/Edit Item Modal: Inline forms within the inventory table
+- Barcode Generation Modal: 
+  * Display item names with corresponding barcodes
+  * Bulk download option
+  * Hot refresh data option
+- Scan Modal:
+  * Camera interface for barcode scanning
+  * Form for transaction details (type, quantity, benefactor, notes)
+  * Confirmation button
+
+### Responsive Design
+- Mobile-friendly interface
+- Touch-optimized UI elements
+- Appropriate font sizes and button spacing
+
+## 5. TECHNICAL IMPLEMENTATION
+
+### CodeIgniter 3 Framework
+- MVC architecture
+- RESTful API endpoints for AJAX functionality
+- Form validation
+- Database query optimization
+
+### Frontend
+- Bootstrap for responsive design
+- jQuery for DOM manipulation
+- AJAX for asynchronous data loading
+- HTML5 barcode scanning
+
+### Libraries/APIs
+- BarcodeAPI.org for barcode generation
+- barcode scanning
+
+## 6. DEVELOPMENT PHASES
+
+### Phase 1: Foundation
+- Database setup
+- Basic CRUD for products
+- UI templates and layout
+
+### Phase 2: Core Functionality
+- Transaction processing
+- Inventory management
+- Business rules implementation
+
+### Phase 3: Barcode System
+- Barcode generation
+- Scanning implementation
+- Label printing
+
+### Phase 4: Polishing
+- UI refinements
+- Performance optimization
+- Testing and bug fixes
