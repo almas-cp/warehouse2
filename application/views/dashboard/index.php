@@ -281,93 +281,116 @@
 
 <!-- Scan Modal -->
 <div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Scan Barcode</h5>
+                <h5 class="modal-title">Batch Scan</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="text-center mb-3">
-                    <div id="scanner-container" style="position: relative; max-width: 100%;">
-                        <video id="video" style="width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px;"></video>
-                        <canvas id="canvas" hidden></canvas>
-                        <div id="scanner-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.3); display: none;">
-                            <div class="d-flex justify-content-center align-items-center h-100">
-                                <div class="spinner-border text-light" role="status"></div>
+                <div class="row">
+                    <!-- Scanner Column -->
+                    <div class="col-md-5">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Scanner</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <div id="scanner-container" style="position: relative; max-width: 100%;">
+                                        <video id="video" style="width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 4px;"></video>
+                                        <canvas id="canvas" hidden></canvas>
+                                        <div id="scanner-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.3); display: none;">
+                                            <div class="d-flex justify-content-center align-items-center h-100">
+                                                <div class="spinner-border text-light" role="status"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button class="btn btn-primary btn-sm" id="startScanBtn">
+                                            <i class="fas fa-camera me-1"></i>Start Scanner
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm d-none" id="stopScanBtn">
+                                            <i class="fas fa-stop me-1"></i>Stop Scanner
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mt-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Alternative Methods</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <label for="manual_item_id" class="form-label">Enter Item ID:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" class="form-control" id="manual_item_id">
+                                                <button class="btn btn-outline-primary" type="button" id="addManualItemBtn">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-2">
+                                            <label for="barcode_image" class="form-label">Upload Barcode:</label>
+                                            <input type="file" class="form-control form-control-sm" id="barcode_image" accept="image/*">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-2">
-                        <button class="btn btn-primary" id="startScanBtn">
-                            <i class="fas fa-camera me-1"></i>Start Scanner
-                        </button>
-                        <button class="btn btn-secondary d-none" id="stopScanBtn">
-                            <i class="fas fa-stop me-1"></i>Stop Scanner
-                        </button>
+                    
+                    <!-- Batch Items Column -->
+                    <div class="col-md-7">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Scanned Items</h6>
+                                <button class="btn btn-sm btn-outline-light" id="clearAllItemsBtn">
+                                    <i class="fas fa-trash me-1"></i>Clear All
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="batch_benefactor" class="form-label">Benefactor (for all items):</label>
+                                    <input type="text" class="form-control" id="batch_benefactor" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="batch_notes" class="form-label">Notes (Optional):</label>
+                                    <textarea class="form-control" id="batch_notes" rows="1"></textarea>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="batchItemsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>Available</th>
+                                                <th style="width: 120px;">Quantity</th>
+                                                <th>Action</th>
+                                                <th style="width: 50px;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Batch items will be added here dynamically -->
+                                            <tr id="emptyBatchRow">
+                                                <td colspan="6" class="text-center">No items scanned yet</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="my-3">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Alternative Methods</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="manual_item_id" class="form-label">Enter Item ID Manually:</label>
-                                <input type="text" class="form-control" id="manual_item_id">
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="barcode_image" class="form-label">Or Upload Barcode Image:</label>
-                                <input type="file" class="form-control" id="barcode_image" accept="image/*">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="scanned-product-info" class="d-none">
-                    <div class="alert alert-info">
-                        <h5 id="product-name"></h5>
-                        <p>ID: <span id="product-id"></span></p>
-                        <p>Current Quantity: <span id="product-quantity"></span></p>
-                    </div>
-                    <form id="transactionForm">
-                        <input type="hidden" id="transaction_item_id" name="item_id">
-                        <div class="mb-3">
-                            <label class="form-label">Transaction Type:</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="transaction_type" id="type_checkout" value="check-out" checked>
-                                <label class="form-check-label" for="type_checkout">
-                                    Check Out (Remove from Inventory)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="transaction_type" id="type_checkin" value="check-in">
-                                <label class="form-check-label" for="type_checkin">
-                                    Check In (Add to Inventory)
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="transaction_quantity" class="form-label">Quantity:</label>
-                            <input type="number" min="1" class="form-control" id="transaction_quantity" name="quantity" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="benefactor" class="form-label">Benefactor:</label>
-                            <input type="text" class="form-control" id="benefactor" name="benefactor" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Notes (Optional):</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
-                        </div>
-                    </form>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary d-none" id="processTransactionBtn">Process Transaction</button>
+                <button type="button" class="btn btn-success" id="processBatchBtn" disabled>
+                    <i class="fas fa-check me-1"></i>Process All
+                </button>
             </div>
         </div>
     </div>
@@ -559,14 +582,49 @@ $(document).ready(function() {
     let selectedDeviceId = null;
     let scannerActive = false;
     
+    // Batch scanning variables
+    let batchItems = {};
+    
     $('#btnScan').click(function() {
         $('#scanModal').modal('show');
-        $('#scanned-product-info').addClass('d-none');
-        $('#processTransactionBtn').addClass('d-none');
+        $('#batch_benefactor').val('');
+        $('#batch_notes').val('');
         $('#manual_item_id').val('');
         $('#barcode_image').val('');
         $('#startScanBtn').removeClass('d-none');
         $('#stopScanBtn').addClass('d-none');
+        
+        // Reset batch items
+        batchItems = {};
+        updateBatchTable();
+    });
+    
+    // Add manual item button
+    $('#addManualItemBtn').click(function() {
+        const itemId = $('#manual_item_id').val().trim();
+        if (itemId) {
+            fetchProductInfoForBatch(itemId);
+            $('#manual_item_id').val('');
+        } else {
+            alert('Please enter an item ID');
+        }
+    });
+    
+    $('#manual_item_id').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            $('#addManualItemBtn').click();
+            e.preventDefault();
+        }
+    });
+    
+    // Clear all items
+    $('#clearAllItemsBtn').click(function() {
+        if (Object.keys(batchItems).length > 0) {
+            if (confirm('Are you sure you want to clear all items?')) {
+                batchItems = {};
+                updateBatchTable();
+            }
+        }
     });
     
     // Handle barcode image upload
@@ -625,8 +683,8 @@ $(document).ready(function() {
                         const code = result.getText();
                         console.log("Decoded from image:", code);
                         
-                        // Fetch product info
-                        fetchProductInfo(code);
+                        // Fetch product info for batch
+                        fetchProductInfoForBatch(code);
                     }
                 } catch (err) {
                     console.error("Error decoding barcode from image:", err);
@@ -636,6 +694,9 @@ $(document).ready(function() {
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
+        
+        // Clear the input so the same file can be selected again
+        $(this).val('');
     });
     
     $('#startScanBtn').click(function() {
@@ -714,8 +775,8 @@ $(document).ready(function() {
                     scannerActive = false;
                     $('#scanner-overlay').show();
                     
-                    // Fetch product info
-                    fetchProductInfo(code);
+                    // Fetch product info for batch
+                    fetchProductInfoForBatch(code);
                 }
                 
                 if (error && !(error instanceof ZXing.NotFoundException)) {
@@ -747,15 +808,24 @@ $(document).ready(function() {
         }
     }
     
-    $('#manual_item_id').change(function() {
-        const itemId = $(this).val();
-        if (itemId) {
-            fetchProductInfo(itemId);
+    // Fetch product info for batch scanning
+    function fetchProductInfoForBatch(itemId) {
+        console.log("Fetching product info for batch:", itemId);
+        
+        // If already in batch, don't fetch again, just increase quantity
+        if (batchItems[itemId]) {
+            const quantity = batchItems[itemId].quantity + 1;
+            batchItems[itemId].quantity = quantity;
+            updateBatchTable();
+            
+            // Enable scanning again
+            $('#scanner-overlay').hide();
+            setTimeout(function() {
+                scannerActive = true;
+            }, 1000);
+            return;
         }
-    });
-    
-    function fetchProductInfo(itemId) {
-        console.log("Fetching product info for:", itemId);
+        
         $.ajax({
             url: baseUrl + 'dashboard/get_product/' + itemId,
             type: 'GET',
@@ -765,21 +835,22 @@ $(document).ready(function() {
                 
                 if (response.status === 'success') {
                     const product = response.data;
-                    $('#product-name').text(product.name);
-                    $('#product-id').text(product.item_id);
-                    $('#product-quantity').text(product.quantity);
-                    $('#transaction_item_id').val(product.item_id);
-                    $('#transaction_quantity').val(1);
-                    $('#benefactor').val('');
-                    $('#notes').val('');
                     
-                    $('#scanned-product-info').removeClass('d-none');
-                    $('#processTransactionBtn').removeClass('d-none');
+                    // Add to batch items
+                    batchItems[product.item_id] = {
+                        id: product.item_id,
+                        name: product.name,
+                        available: product.quantity,
+                        quantity: 1,
+                        action: 'check-out' // Default action
+                    };
                     
-                    // Enable scanning again after a delay
+                    updateBatchTable();
+                    
+                    // Enable scanning again after a short delay
                     setTimeout(function() {
                         scannerActive = true;
-                    }, 3000);
+                    }, 1000);
                     
                 } else {
                     alert('Error: Product not found');
@@ -798,6 +869,183 @@ $(document).ready(function() {
             }
         });
     }
+    
+    // Update the batch table with current items
+    function updateBatchTable() {
+        const itemCount = Object.keys(batchItems).length;
+        
+        // Enable/disable process button
+        $('#processBatchBtn').prop('disabled', itemCount === 0 || $('#batch_benefactor').val().trim() === '');
+        
+        // Show/hide empty message
+        if (itemCount === 0) {
+            $('#emptyBatchRow').show();
+        } else {
+            $('#emptyBatchRow').hide();
+        }
+        
+        // Remove existing batch rows (except empty row)
+        $('#batchItemsTable tbody tr:not(#emptyBatchRow)').remove();
+        
+        // Add current batch items
+        for (const itemId in batchItems) {
+            const item = batchItems[itemId];
+            // Display quantity as positive/negative based on action
+            const displayQuantity = item.action === 'check-out' ? -item.quantity : item.quantity;
+            const textColor = item.action === 'check-out' ? 'text-danger' : 'text-success';
+            
+            const rowHtml = `
+                <tr data-id="${item.id}">
+                    <td>${item.id}</td>
+                    <td>${item.name}</td>
+                    <td>${item.available}</td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control item-quantity ${textColor}" 
+                                min="1" max="${item.action === 'check-out' ? item.available : 999}" 
+                                value="${Math.abs(displayQuantity)}" style="width: 80px;">
+                            <span class="input-group-text ${textColor}">
+                                ${item.action === 'check-out' ? '-' : '+'}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn ${item.action === 'check-out' ? 'btn-danger active' : 'btn-outline-danger'} btn-action" 
+                                data-action="check-out" data-id="${item.id}">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn ${item.action === 'check-in' ? 'btn-success active' : 'btn-outline-success'} btn-action" 
+                                data-action="check-in" data-id="${item.id}">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger remove-item" data-id="${item.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#batchItemsTable tbody').append(rowHtml);
+        }
+        
+        // Attach event handlers
+        $('.btn-action').off('click').on('click', function() {
+            const itemId = $(this).data('id');
+            const action = $(this).data('action');
+            
+            if (batchItems[itemId]) {
+                batchItems[itemId].action = action;
+                updateBatchTable();
+            }
+        });
+        
+        $('.item-quantity').off('change').on('change', function() {
+            const itemId = $(this).closest('tr').data('id');
+            const quantity = parseInt($(this).val()) || 1;
+            
+            if (batchItems[itemId]) {
+                // Ensure quantity is valid
+                const maxQuantity = batchItems[itemId].action === 'check-out' ? 
+                    batchItems[itemId].available : 999;
+                    
+                batchItems[itemId].quantity = Math.min(Math.max(1, quantity), maxQuantity);
+                $(this).val(batchItems[itemId].quantity);
+            }
+        });
+        
+        $('.remove-item').off('click').on('click', function() {
+            const itemId = $(this).data('id');
+            delete batchItems[itemId];
+            updateBatchTable();
+        });
+    }
+    
+    // Process all items in batch
+    $('#processBatchBtn').click(function() {
+        const benefactor = $('#batch_benefactor').val().trim();
+        const notes = $('#batch_notes').val().trim();
+        
+        if (!benefactor) {
+            alert('Please enter a benefactor name');
+            return;
+        }
+        
+        if (Object.keys(batchItems).length === 0) {
+            alert('No items in batch');
+            return;
+        }
+        
+        // Create an array of transactions to process
+        const transactions = [];
+        for (const itemId in batchItems) {
+            const item = batchItems[itemId];
+            transactions.push({
+                item_id: item.id,
+                transaction_type: item.action,
+                quantity: Math.abs(item.quantity), // Always send positive quantity
+                benefactor: benefactor,
+                notes: notes
+            });
+        }
+        
+        // Disable the process button
+        $('#processBatchBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+        
+        // Process each transaction
+        let completed = 0;
+        let errors = 0;
+        
+        function processBatch(index) {
+            if (index >= transactions.length) {
+                // All transactions processed
+                if (errors === 0) {
+                    // Success!
+                    alert('All transactions processed successfully!');
+                    $('#scanModal').modal('hide');
+                    window.location.reload(); // Refresh the page
+                } else {
+                    // Some errors
+                    alert(`Completed ${completed} transactions with ${errors} errors`);
+                    $('#processBatchBtn').prop('disabled', false).html('<i class="fas fa-check me-1"></i>Process All');
+                }
+                return;
+            }
+            
+            const transaction = transactions[index];
+            
+            $.ajax({
+                url: baseUrl + 'dashboard/add_transaction',
+                type: 'POST',
+                data: transaction,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        completed++;
+                    } else {
+                        errors++;
+                        console.error("Transaction error:", response.message);
+                    }
+                    processBatch(index + 1);
+                },
+                error: function(xhr) {
+                    errors++;
+                    console.error("AJAX error:", xhr.responseText);
+                    processBatch(index + 1);
+                }
+            });
+        }
+        
+        // Start processing
+        processBatch(0);
+    });
+    
+    // Monitor benefactor field for process button state
+    $('#batch_benefactor').on('input', function() {
+        updateBatchTable(); // This will update the process button state
+    });
     
     // Barcode generation enhancements
     $('#btnGenerateBarcodes').click(function() {
@@ -1017,80 +1265,5 @@ $(document).ready(function() {
             }
         });
     });
-    
-    // Process Transaction
-    $('#processTransactionBtn').click(function() {
-        if (!$('#transactionForm')[0].checkValidity()) {
-            $('#transactionForm')[0].reportValidity();
-            return;
-        }
-        
-        const itemId = $('#transaction_item_id').val();
-        const transactionType = $('input[name="transaction_type"]:checked').val();
-        const quantity = $('#transaction_quantity').val();
-        const benefactor = $('#benefactor').val();
-        const notes = $('#notes').val();
-        
-        $.ajax({
-            url: baseUrl + 'dashboard/add_transaction',
-            type: 'POST',
-            data: {
-                item_id: itemId,
-                transaction_type: transactionType,
-                quantity: quantity,
-                benefactor: benefactor,
-                notes: notes
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    $('#scanModal').modal('hide');
-                    alert('Transaction processed successfully!');
-                    window.location.reload();
-                } else {
-                    alert('Error: ' + response.message);
-                }
-            },
-            error: function(xhr) {
-                alert('Error: ' + xhr.responseText);
-            }
-        });
-    });
-    
-    // Refresh transaction table
-    function refreshTransactions() {
-        $.ajax({
-            url: baseUrl + 'dashboard/get_recent_transactions',
-            type: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    let html = '';
-                    if (response.data.length === 0) {
-                        html = '<tr><td colspan="7" class="text-center">No transactions found</td></tr>';
-                    } else {
-                        $.each(response.data, function(index, transaction) {
-                            const badgeClass = transaction.transaction_type === 'check-in' ? 'bg-success' : 'bg-warning';
-                            const badgeText = transaction.transaction_type === 'check-in' ? 'Check In' : 'Check Out';
-                            const transactionDate = new Date(transaction.transaction_time).toLocaleString();
-                            
-                            html += `
-                                <tr>
-                                    <td>${transaction.transaction_id}</td>
-                                    <td>${transaction.product_name}</td>
-                                    <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-                                    <td>${transaction.quantity}</td>
-                                    <td>${transaction.benefactor}</td>
-                                    <td>${transactionDate}</td>
-                                    <td>${transaction.notes || '-'}</td>
-                                </tr>
-                            `;
-                        });
-                    }
-                    $('#transactionTable tbody').html(html);
-                }
-            }
-        });
-    }
 });
 </script>
